@@ -29,3 +29,7 @@ class TaskUpdate(TaskCreate):
 
 class TaskRead(TaskBase):
     id: int
+
+
+class ImportantTaskRead(TaskRead):
+    available_employee: str

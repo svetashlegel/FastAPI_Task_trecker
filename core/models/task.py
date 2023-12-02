@@ -18,6 +18,8 @@ class Task(Base):
     base_task: Mapped[int | None] = mapped_column(ForeignKey('tasks.id'), nullable=True)
     employee_id: Mapped[int | None] = mapped_column(ForeignKey('employees.id'), nullable=True)
 
+    previous_task: Mapped['Task'] = relationship(remote_side='legacy_tasks')
+    legacy_tasks: Mapped[list['Task']] = relationship(remote_side='previous_task')
     employee: Mapped['Employee'] = relationship(back_populates='tasks')
 
     def __str__(self):

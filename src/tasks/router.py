@@ -9,8 +9,9 @@ from sqlalchemy.engine import Result
 from src.database import get_async_session
 
 from core.models.task import Task
+from core.models.employee import Employee
 from src.tasks.schemas import TaskRead, TaskCreate, TaskUpdate
-
+from src.tasks.services import get_suitable_employee
 
 router = APIRouter(
     prefix='/task',
@@ -62,3 +63,15 @@ async def delete_task(task_id: int, session: AsyncSession = Depends(get_async_se
     await session.commit()
     return {'result': 'success'}
 
+
+@router.get('/important', response_model=List[TaskRead])
+async def get_important_tasks(session: AsyncSession = Depends(get_async_session)) -> list[Task]:
+    stmt = select(Task).where(Task.base_task is not None and Task.employee_id is None and Task.base_task.employee_id is not None).options(joinedload(Task.previous_task).joinedload(Task.employee)).order_by(Task.id)
+    result: Result = await session.execute(stmt)
+    tasks = result.scalars().all()
+
+    for task in tasks:
+        base_task_employee = task.previous_task.employee
+        suitable_employee = get_suitable_employee(base_task_employee)
+        
+    return list(tasks)
