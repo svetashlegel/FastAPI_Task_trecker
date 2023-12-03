@@ -1,11 +1,11 @@
 from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import relationship, joinedload, selectinload
+from sqlalchemy.orm import selectinload
 from sqlalchemy.engine import Result
-from sqlalchemy.sql.functions import count
+from sqlalchemy.sql.functions import func
 
 from src.database import get_async_session
 from core.models.employee import Employee
@@ -67,8 +67,15 @@ async def delete_employee(employee_id: int, session: AsyncSession = Depends(get_
 
 @router.get('/engaged', response_model=List[EmployeeReadWithTasks])
 async def get_engaged_employees(session: AsyncSession = Depends(get_async_session)) -> list[Employee]:
-    stmt = (select(Employee).join(Employee.tasks).options(selectinload(Employee.tasks)).filter(Task.is_active)
-            .order_by(count(Task.is_active)))
+    stmt = (select(
+        Employee,
+        func.count(Task.id).label('active_tasks_count')
+        ).join(Employee.tasks)
+        .filter(Task.is_active)
+        .group_by(Employee.id)
+        .order_by(desc('active_tasks_count'))
+        .options(selectinload(Employee.tasks))
+    )
 
     result: Result = await session.execute(stmt)
     employees = result.scalars().all()
