@@ -8,9 +8,6 @@ class EmployeeBase(BaseModel):
     second_name: str = Field(max_length=100)
     position: str = Field(max_length=100)
 
-    class Config:
-        orm_mode = True
-
 
 class EmployeeCreate(EmployeeBase):
     pass
