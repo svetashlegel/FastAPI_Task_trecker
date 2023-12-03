@@ -1,7 +1,7 @@
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer, BOOLEAN, TIMESTAMP, ForeignKey
+from sqlalchemy import String, BOOLEAN, TIMESTAMP, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models.base import Base
@@ -18,8 +18,7 @@ class Task(Base):
     base_task: Mapped[int | None] = mapped_column(ForeignKey('tasks.id'), nullable=True)
     employee_id: Mapped[int | None] = mapped_column(ForeignKey('employees.id'), nullable=True)
 
-    previous_task: Mapped['Task'] = relationship(remote_side='legacy_tasks')
-    legacy_tasks: Mapped[list['Task']] = relationship(remote_side='previous_task')
+    parent_task: Mapped['Task'] = relationship('Task', remote_side='Task.id', backref='subtasks')
     employee: Mapped['Employee'] = relationship(back_populates='tasks')
 
     def __str__(self):

@@ -11,9 +11,6 @@ class TaskBase(BaseModel):
     deadline: date
     is_active: bool
 
-    class Config:
-        orm_mode = True
-
 
 class TaskCreate(TaskBase):
     pass
@@ -29,7 +26,3 @@ class TaskUpdate(TaskCreate):
 
 class TaskRead(TaskBase):
     id: int
-
-
-class ImportantTaskRead(TaskRead):
-    available_employee: str
