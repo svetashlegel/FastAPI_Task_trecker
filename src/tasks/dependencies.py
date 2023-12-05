@@ -9,6 +9,7 @@ from core.models.task import Task
 
 
 async def get_least_busy_employee(session: AsyncSession = Depends(get_async_session)) -> Employee:
+    """Получает сотрудника с наименьшим количеством активных задач"""
     least_busy_employee_q = (
         select(Employee)
         .outerjoin(Employee.tasks)

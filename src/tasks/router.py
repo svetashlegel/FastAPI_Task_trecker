@@ -1,17 +1,10 @@
 from typing import List
-
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-from sqlalchemy.engine import Result
 
 from src.database import get_async_session
-
-from core.models.task import Task
 from core.models.employee import Employee
 from src.tasks.schemas import TaskRead, TaskCreate, TaskUpdate
-
 from src.tasks import services
 from src.tasks.dependencies import get_least_busy_employee
 
@@ -23,32 +16,42 @@ router = APIRouter(
 
 @router.get('/list', response_model=List[TaskRead])
 async def get_all_tasks(session: AsyncSession = Depends(get_async_session)):
+    """Общий список задач"""
     return await services.get_all_tasks(session)
 
 
 @router.get('/detail/{task_id}', response_model=TaskRead)
 async def get_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
+    """Данные по одной задаче"""
     return await services.get_task(task_id, session)
 
 
 @router.post('/create', response_model=TaskRead)
 async def create_task(new_task: TaskCreate, session: AsyncSession = Depends(get_async_session)):
+    """Создание задачи"""
     return await services.create_task(new_task, session)
 
 
 @router.patch('/update/{task_id}', response_model=TaskRead)
 async def update_task(task_id: int, task_update: TaskUpdate, session: AsyncSession = Depends(get_async_session)):
+    """Обновление задачи"""
     return await services.update_task(task_id, task_update, session)
 
 
 @router.delete('/delete/{task_id}')
 async def delete_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
+    """Удаление задачи"""
     return await services.delete_task(task_id, session)
 
 
 @router.get('/important')
 async def get_important_tasks(least_busy_employee: Employee = Depends(get_least_busy_employee),
                               session: AsyncSession = Depends(get_async_session)):
+    """
+    Список важных задач и возможных сотрудников для их выполнения.
+    Важные задачи - задачи, не взятые в работу, и от которых зависят
+    другие задачи, взятые в работу.
+    """
     tasks = await services.get_important_tasks(session)
     res_tasks = []
     for task in tasks:
