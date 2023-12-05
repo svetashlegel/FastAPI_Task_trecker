@@ -12,6 +12,9 @@ from core.models.task import Task
 from core.models.employee import Employee
 from src.tasks.schemas import TaskRead, TaskCreate, TaskUpdate
 
+from src.tasks import services
+from src.tasks.dependencies import get_least_busy_employee
+
 router = APIRouter(
     prefix='/task',
     tags=['Tasks']
@@ -19,74 +22,34 @@ router = APIRouter(
 
 
 @router.get('/list', response_model=List[TaskRead])
-async def get_all_tasks(session: AsyncSession = Depends(get_async_session)) -> list[Task]:
-    stmt = select(Task).order_by(Task.id)
-    result: Result = await session.execute(stmt)
-    tasks = result.scalars().all()
-    return list(tasks)
+async def get_all_tasks(session: AsyncSession = Depends(get_async_session)):
+    return await services.get_all_tasks(session)
 
 
 @router.get('/detail/{task_id}', response_model=TaskRead)
-async def get_task(task_id: int, session: AsyncSession = Depends(get_async_session)) -> Task | None:
-    stmt = select(Task).where(Task.id == task_id)
-    result: Result = await session.execute(stmt)
-    task: Task | None = result.scalar_one_or_none()
-    return task
+async def get_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
+    return await services.get_task(task_id, session)
 
 
 @router.post('/create', response_model=TaskRead)
 async def create_task(new_task: TaskCreate, session: AsyncSession = Depends(get_async_session)):
-    task = Task(**new_task.model_dump())
-    session.add(task)
-    await session.commit()
-    return task
+    return await services.create_task(new_task, session)
 
 
 @router.patch('/update/{task_id}', response_model=TaskRead)
 async def update_task(task_id: int, task_update: TaskUpdate, session: AsyncSession = Depends(get_async_session)):
-    stmt = select(Task).where(Task.id == task_id)
-    result: Result = await session.execute(stmt)
-    task: Task | None = result.scalar_one_or_none()
-    for key, value in task_update.model_dump(exclude_none=True).items():
-        setattr(task, key, value)
-    await session.commit()
-    return task
+    return await services.update_task(task_id, task_update, session)
 
 
 @router.delete('/delete/{task_id}')
 async def delete_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
-    stmt = select(Task).where(Task.id == task_id)
-    result: Result = await session.execute(stmt)
-    task: Task | None = result.scalar_one_or_none()
-    await session.delete(task)
-    await session.commit()
-    return {'result': 'success'}
+    return await services.delete_task(task_id, session)
 
 
 @router.get('/important')
-async def get_important_tasks2(session: AsyncSession = Depends(get_async_session)):
-
-    least_busy_employee_q = (
-        select(Employee)
-        .outerjoin(Employee.tasks)
-        .filter(Task.is_active.is_(True))
-        .group_by(Employee.id)
-        .order_by(func.count(Task.id))
-        .limit(1)
-    )
-    r: Result = await session.execute(least_busy_employee_q)
-    least_busy_employee: Employee = r.scalar_one()
-
-    stmt = select(Task).outerjoin(
-        Employee, Task.employee_id == Employee.id
-        ).filter(
-        Task.employee_id.is_(None),
-        Task.parent_task.has(Task.employee_id.isnot(None))
-        ).options(joinedload(Task.parent_task).joinedload(Task.employee).joinedload(Employee.tasks))
-
-    result1: Result = await session.execute(stmt)
-    tasks = result1.unique().scalars().all()
-
+async def get_important_tasks(least_busy_employee: Employee = Depends(get_least_busy_employee),
+                              session: AsyncSession = Depends(get_async_session)):
+    tasks = await services.get_important_tasks(session)
     res_tasks = []
     for task in tasks:
         parent_task_employee_task_count = len([t for t in task.parent_task.employee.tasks if t.is_active])
