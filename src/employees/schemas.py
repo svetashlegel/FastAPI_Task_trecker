@@ -25,4 +25,3 @@ class EmployeeRead(EmployeeBase):
 
 class EmployeeReadWithTasks(EmployeeRead):
     tasks: List[TaskRead] = []
-

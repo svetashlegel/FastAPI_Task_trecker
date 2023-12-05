@@ -45,7 +45,8 @@ async def create_employee(new_employee: EmployeeCreate, session: AsyncSession = 
 
 
 @router.patch('/update/{employee_id}', response_model=EmployeeRead)
-async def update_employee(employee_id: int, employee_update: EmployeeUpdate, session: AsyncSession = Depends(get_async_session)):
+async def update_employee(employee_id: int, employee_update: EmployeeUpdate,
+                          session: AsyncSession = Depends(get_async_session)):
     stmt = select(Employee).where(Employee.id == employee_id)
     result: Result = await session.execute(stmt)
     employee: Employee | None = result.scalar_one_or_none()
